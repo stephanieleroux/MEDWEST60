@@ -6,3 +6,10 @@
 
 # Plots
 *.png
+
+# MAC stuff
+.MACOSX
+
+# work in progress
+wip_*
+
