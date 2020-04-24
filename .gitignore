@@ -13,3 +13,5 @@
 # work in progress
 wip_*
 
+# jupyter 
+.ipynb_checkpoints*
