@@ -74,18 +74,7 @@ def readmedwestens_1mb(diriprefix='/Users/leroux/DATA/MEDWEST60_DATA/',
     
     data   = xr.open_mfdataset(dirimed+filiprefix+"*.nc",concat_dim='time_counter',decode_times=True)[varna]
         
-    if varna=='sosstsst':
-        varname='SST'
-        latexvarname=varname
-    elif varna=='sossheig':
-        varname='SSH'
-        latexvarname=varname
-    elif varna=='socurloverf':
-        varname='curloverf'
-        latexvarname="$\zeta/f$"
-    else :
-        varname=varna
-        latexvarname=varna
+    varname,latexvarname = latexvaname(varna)
     
     return nav_lat,nav_lon,bathy,data,varname,latexvarname
 
@@ -417,3 +406,18 @@ def stdens(varIN):
     STDensdom = STDens.stack(z=('x', 'y'))
     STDensdom = STDensdom.mean(dim='z').load()
     return STDens,STDensdom
+
+def latexvarname(varna):
+    if varna=='sosstsst':
+        varname='SST'
+        latexvarname=varname
+    elif varna=='sossheig':
+        varname='SSH'
+        latexvarname=varname
+    elif varna=='socurloverf':
+        varname='curloverf'
+        latexvarname="$\zeta/f$"
+    else :
+        varname=varna
+        latexvarname=varna
+    return varname,latexvarname
