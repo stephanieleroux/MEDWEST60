@@ -34,45 +34,26 @@ import cmocean
 # custom tools
 import lib_medwest60
 
-def flatexvarname(varna):
-    if varna=='sosstsst':
-        varname='SST'
-        latexvarname=varname
-    elif varna=='sossheig':
-        varname='SSH'
-        latexvarname=varname
-    elif varna=='socurloverf':
-        varname='curloverf'
-        latexvarname="$\zeta/f$"
-    else :
-        varname=varna
-        latexvarname=varna
-    return varname,latexvarname
 
-def readmedwestens_1mb(diriprefix='/Users/leroux/DATA/MEDWEST60_DATA/',
-                       CONFIGCASEmed='MEDWEST60-GSL04',
+
+def readmedwestens_1mb(machine='LAP', diriprefix='/Users/leroux/DATA/MEDWEST60_DATA/',
+                       CONFIGCASEmed='MEDWEST60-GSL14',
                        ens='ens01',
                        mb='001',
-                       CONFIGCASEref='MEDWEST60-BLBT02',
+                       CONFIGCASEref='MEDWEST60-GSL14',
                        typ="gridT-2D",
-                       varna='sosstsst',diriprefixref="/Users/leroux/DATA/MEDWEST60_DATA/extracted_eNATL60/1h/",
-                       bathyfilepath='/Users/leroux/DATA/MEDWEST60_DATA/MEDWEST60-I/MEDWEST60_Bathymetry_v3.3.nc4'):
+                       varna='sosstsst',
+                       maskfile   ='/Users/leroux/DATA/MEDWEST60_DATA/MEDWEST60-I/MEDWEST60_mask.nc4',
+                       maskvar     ='tmask'):
 
-    
     '''
     Goal: read data from one ensemble member.
-    Take parameters:
-    diriprefix='/Users/leroux/DATA/MEDWEST60_DATA/',
-    CONFIGCASEmed='MEDWEST60-GSL04',
-    ens='ens01',
-    mb='001',
-    CONFIGCASEref='MEDWEST60-BLBT02',
-    typ="gridT-2D",
-    varna='sosstsst',diriprefixref="/Users/leroux/DATA/MEDWEST60_DATA/extracted_eNATL60/1h/",
-    bathyfilepath='/Users/leroux/DATA/MEDWEST60_DATA/MEDWEST60-I/MEDWEST60_Bathymetry_v3.3.nc4'
-    
+    Parameters...
     Returns:  nav_lat,nav_lon,bathy,data,varname,latexvarname
     '''
+    
+    diriprefix,maskfile,bathyfile = definepathsonmachine(machine)        
+    
 
     dirimed = diriprefix+CONFIGCASEmed+"-S/"+ens+"/1h/"+typ+"/"
     print(dirimed)
@@ -81,20 +62,29 @@ def readmedwestens_1mb(diriprefix='/Users/leroux/DATA/MEDWEST60_DATA/',
     filiprefix = mb+CONFIGCASEmed+"-"+ens+"_1h_*"+typ+"_"
     print(filiprefix+"*.nc")
    
-    bathy =  xr.open_dataset(bathyfilepath)["Bathymetry"]
+    mask =  xr.open_dataset(maskfile)[maskvar]
     # longitude
-    nav_lon = xr.open_dataset(bathyfilepath)['nav_lon']
+    nav_lon = xr.open_dataset(maskfile)['nav_lon']
     # latitude
-    nav_lat = xr.open_dataset(bathyfilepath)['nav_lat']
+    nav_lat = xr.open_dataset(maskfile)['nav_lat']
     
     data   = xr.open_mfdataset(dirimed+filiprefix+"*.nc",concat_dim='time_counter',decode_times=True)[varna]
         
     varname,latexvarname = flatexvarname(varna)
     
-    return nav_lat,nav_lon,bathy,data,varname,latexvarname
+    return nav_lat,nav_lon,mask,data,varname,latexvarname
 
 
-def readallmbs(NMBtot=1,typ="gridT-2D", varna='sossheig',CONFIGCASEmed='MEDWEST60-GSL04',ens='ens01',CONFIGCASEref='MEDWEST60-GSL04',diriprefix='/mnt/meom/workdir/lerouste/MEDWEST60/',bathyfilepath='/mnt/meom/workdir/lerouste/MEDWEST60/MEDWEST60-I/MEDWEST60_Bathymetry_v3.3.nc4'):
+def readallmbs(machine='LAP', diriprefix='/Users/leroux/DATA/MEDWEST60_DATA/',
+                       CONFIGCASEmed='MEDWEST60-GSL14',
+                       ens='ens01',
+                       mb='001',
+                       CONFIGCASEref='MEDWEST60-GSL14',
+                       typ="gridT-2D",
+                       varna='sosstsst',
+                       maskfile   ='/Users/leroux/DATA/MEDWEST60_DATA/MEDWEST60-I/MEDWEST60_mask.nc4',
+                       maskvar     ='tmask',
+                       NMBtot=1):
 
     ie=1
 
@@ -105,71 +95,25 @@ def readallmbs(NMBtot=1,typ="gridT-2D", varna='sossheig',CONFIGCASEmed='MEDWEST6
         if ie>9:
             mbn="0"+str(ie)
 
-        nav_lat,nav_lon,bathy,tmpMB,varname,latexvarname = readmedwestens_1mb(typ=typ, mb=mbn,varna=varna,CONFIGCASEmed=CONFIGCASEmed,ens=ens,CONFIGCASEref=CONFIGCASEref,diriprefix=diriprefix,bathyfilepath=bathyfilepath)
+        nav_lat,nav_lon,mask,tmpMB,varname,latexvarname = readmedwestens_1mb(machine,typ=typ, mb=mbn,varna=varna,CONFIGCASEmed=CONFIGCASEmed,ens=ens,CONFIGCASEref=CONFIGCASEref,diriprefix=diriprefix,maskfile=maskfile,maskvar=maskvar)
 
         if (ie!=1):
             concdata = xr.concat([concdata,tmpMB], dim='e')
         else:
             concdata = tmpMB
-    return nav_lat,nav_lon,bathy,concdata,varname,latexvarname 
+    return nav_lat,nav_lon,mask,concdata,varname,latexvarname 
 
-def readmedwesttwinexp(diriprefix='/Users/leroux/DATA/MEDWEST60_DATA/',
-                       CONFIGCASEmed='MEDWEST60-GSL03',
-                       CONFIGCASEref='MEDWEST60-BLBT02',
-                       typ="gridT-2D",
-                       varna='sosstsst',diriprefixref="/Users/leroux/DATA/MEDWEST60_DATA/extracted_eNATL60/1h/",
-                       bathyfilepath='/Users/leroux/DATA/MEDWEST60_DATA/MEDWEST60-I/MEDWEST60_Bathymetry_v3.3.nc4'):
 
-    dirimed_el = diriprefix+CONFIGCASEmed+"-S/1h/"+typ+"/"
-    dirimed_lf = diriprefix+CONFIGCASEmed+"bis-S/1h/"+typ+"/"
-    #diriref = diriprefixref+typ+"/"+"tmp/"  
 
-    if typ=='curloverf':
-        typ2='curloverF'
-        filiprefix_el = CONFIGCASEmed+"_1h_20100???_20100???_"+typ2
-        filiprefix_lf = CONFIGCASEmed+"bis_1h_20100???_20100???_"+typ2
-    else:
-        filiprefix_el = CONFIGCASEmed+"_1h_20100???_20100???_"+typ
-        filiprefix_lf = CONFIGCASEmed+"bis_1h_20100???_20100???_"+typ
+def readonlybathy(machine):
 
+    diriprefix,maskfile,bathyfile = definepathsonmachine(machine)
     
-    bathy =  xr.open_dataset(bathyfilepath)["Bathymetry"]
+    bathy =  xr.open_dataset(bathyfile)["Bathymetry"]
     # longitude
-    nav_lon = xr.open_dataset(bathyfilepath)['nav_lon']
+    nav_lon = xr.open_dataset(bathyfile)['nav_lon']
     # latitude
-    nav_lat = xr.open_dataset(bathyfilepath)['nav_lat']
-    
-    data_el   = xr.open_mfdataset(dirimed_el+filiprefix_el+"*_merg.nc",concat_dim='time_counter',decode_times=True)[varna]
-    data_lf   = xr.open_mfdataset(dirimed_lf+filiprefix_lf+"*_merg.nc",concat_dim='time_counter',decode_times=True)[varna]
-
-    if (data_el.time_counter[0]==data_lf.time_counter[0]):
-        print("Dates ok. READ : "+varna)
-        diff = data_el - data_lf
-    else:
-        print("!! dates not ok !! CANT COMPUTE DIFF")
-        diff = 0
-        
-    if varna=='sosstsst':
-        varname='SST'
-        latexvarname=varname
-    if varna=='sossheig':
-        varname='SSH'
-        latexvarname=varname
-    if varna=='socurloverf':
-        varname='curloverf'
-        latexvarname="$\zeta/f$"
-    
-    return nav_lat,nav_lon,bathy,data_el,data_lf,diff,varname,latexvarname
-
-
-
-def readonlybathy(bathyfilepath='/Users/leroux/DATA/MEDWEST60_DATA/MEDWEST60-I/MEDWEST60_Bathymetry_v3.3.nc4'):
-
-    bathy =  xr.open_dataset(bathyfilepath)["Bathymetry"]
-    # longitude
-    nav_lon = xr.open_dataset(bathyfilepath)['nav_lon']
-    # latitude
-    nav_lat = xr.open_dataset(bathyfilepath)['nav_lat']
+    nav_lat = xr.open_dataset(bathyfile)['nav_lat']
     
     return nav_lat,nav_lon,bathy
     
@@ -296,13 +240,13 @@ def saveplt(fig,diro,namo,dpifig=300):
     fig.savefig(diro+namo, facecolor=fig.get_facecolor(), edgecolor='none',dpi=dpifig,bbox_inches='tight', pad_inches=0)
     plt.close(fig) 
 
-def mycolormap(levbounds,cm_base='Spectral_r',cu='w',co='k'):
+def mycolormap(levbounds,cm_base='Spectral_r',cu='w',co='k',istart=0):
     lmin = levbounds[0]
     lmax = levbounds[1]
     incr = levbounds[2]
     levels = np.arange(lmin,lmax,incr)
     nice_cmap = plt.get_cmap(cm_base)
-    colors = nice_cmap(np.linspace(0,1,len(levels)))[:]
+    colors = nice_cmap(np.linspace(istart/len(levels),1,len(levels)))[:]
     cmap, norm = from_levels_and_colors(levels, colors, extend='max')
     cmap.set_under(cu)
     cmap.set_over(co)
@@ -348,12 +292,28 @@ def addcolorbar(fig,cs,ax,levbounds,levincr=1,tformat="%.2f",tlabel='',shrink=0.
     
     return cb,axins1
 
+def flatexvarname(varna):
+    if varna=='sosstsst':
+        varname='SST'
+        latexvarname=varname
+    elif varna=='sossheig':
+        varname='SSH'
+        latexvarname=varname
+    elif varna=='socurloverf':
+        varname='curloverf'
+        latexvarname="$\zeta/f$"
+    else :
+        varname=varna
+        latexvarname=varna
+    return varname,latexvarname
+
 def textunit(varname):
-    if varname=='SST':
-        suffix=" (ºC)"
-    if varname=='SSH':
-        suffix=" (m)"
-    if varname=='curloverf':
+    if ((varname=='SST') | (varname=='SSH')):
+        if varname=='SST':
+            suffix=" (ºC)"
+        if varname=='SSH':
+            suffix=" (m)"
+    else:
         suffix=""
     return suffix
 
@@ -428,3 +388,16 @@ def spavedom(varIN):
     STDensdom = STDensdom.mean(dim='z').load()
     return STDensdom
 
+def definepathsonmachine(machine):
+    if machine=='LAP':
+        diriprefix ='/Users/leroux/DATA/MEDWEST60_DATA/'
+
+    if machine=='CAL1':
+        diriprefix ='/mnt/meom/workdir/lerouste/MEDWEST60/'
+        
+    if machine=='JZ':
+        diriprefix ='/mnt/meom/workdir/lerouste/MEDWEST60/'
+        
+    maskfile   = diriprefix+'/MEDWEST60-I/MEDWEST60_mask.nc4'
+    bathyfile  = diriprefix+'/MEDWEST60-I/MEDWEST60_Bathymetry_v3.3.nc4'
+    return diriprefix,maskfile,bathyfile
