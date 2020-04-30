@@ -177,14 +177,14 @@ def plotmapMEDWEST_gp(fig3,ax,data2plot,cmap,norm,plto='tmp_plot',gridpts=True,g
     ax.spines["right"].set_visible(False)  
     ax.spines["left"].set_visible(False)  
 
-    ax.tick_params(axis="both", which="both", bottom="False", top="False",  
-                labelbottom="False", labeltop='False',left="False", right="False", labelright="False",labelleft="False")  
+    ax.tick_params(axis="both", which="both", bottom="off", top="off",  
+                labelbottom="off", labeltop='off',left="off", right="off", labelright="off",labelleft="off")  
 
     
     if gridpts:
     # show gridpoint on axes
-        ax.tick_params(axis="both", which="both", bottom="False", top="False",  
-                labelbottom="True", labeltop='False',left="False", right="False", labelright="False",labelleft="True")  
+        ax.tick_params(axis="both", which="both", bottom="off", top="off",  
+                labelbottom="on", labeltop='off',left="off", right="off", labelright="off",labelleft="on")  
         plto = plto+"_wthgdpts"
 
     if gridptsgrid:
@@ -245,15 +245,85 @@ def mycolormap(levbounds,cm_base='Spectral_r',cu='w',co='k',istart=0):
     lmax = levbounds[1]
     incr = levbounds[2]
     levels = np.arange(lmin,lmax,incr)
-    nice_cmap = plt.get_cmap(cm_base)
+    if ( (cm_base=='NCL') | (cm_base=='MJO') | (cm_base=='NCL_NOWI') ):
+        nice_cmap = slx.make_SLXcolormap(whichco=cm_base)
+    else:
+        nice_cmap = plt.get_cmap(cm_base)
     colors = nice_cmap(np.linspace(istart/len(levels),1,len(levels)))[:]
     cmap, norm = from_levels_and_colors(levels, colors, extend='max')
     cmap.set_under(cu)
     cmap.set_over(co)
     return cmap,norm
 
+def make_cmap(colors, position=None, bit=False):
+    '''
+    make_cmap takes a list of tuples which contain RGB values. The RGB
+    values may either be in 8-bit [0 to 255] (in which bit must be set to
+    True when called) or arithmetic [0 to 1] (default). make_cmap returns
+    a cmap with equally spaced colors.
+    Arrange your tuples so that the first color is the lowest value for the
+    colorbar and the last is the highest.
+    position contains values from 0 to 1 to dictate the location of each color.
+    '''
+    
+    import matplotlib as mpl
+    import numpy as np
+    bit_rgb = np.linspace(0,1,256)
+    if position == None:
+        position = np.linspace(0,1,len(colors))
+    else:
+        if len(position) != len(colors):
+            sys.exit("position length must be the same as colors")
+        elif position[0] != 0 or position[-1] != 1:
+            sys.exit("position must start with 0 and end with 1")
+    if bit:
+        for i in range(len(colors)):
+            colors[i] = (bit_rgb[colors[i][0]],
+                         bit_rgb[colors[i][1]],
+                         bit_rgb[colors[i][2]])
+    cdict = {'red':[], 'green':[], 'blue':[]}
+    for pos, color in zip(position, colors):
+        cdict['red'].append((pos, color[0], color[0]))
+        cdict['green'].append((pos, color[1], color[1]))
+        cdict['blue'].append((pos, color[2], color[2]))
 
-def addcolorbar(fig,cs,ax,levbounds,levincr=1,tformat="%.2f",tlabel='',shrink=0.45,facmul=1.,orientation='vertical',pad=0.03,tc='k',loc='lower right'):
+    cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+    return cmap
+
+
+
+def make_SLXcolormap(reverse=False,whichco='MJO'):
+    ''' Define a custom cmap .
+    Parameters: 
+    * Reverse (default=False). If true, will  create the reverse colormap
+    * whichco (default='MJO': which colors to use. For now: only 'MJO', 'NCL', 'NCL_NOWI' available.
+    ''' 
+
+    ### colors to include in my custom colormap
+    if whichco=='MJO':
+        colors_NCLbipo=[(176,17,3,1),(255,56,8,1),(255,196,1,1),(255,255,255,1),(255,255,255,1),(13,176,255,1),(2,88,255,1),(0,10,174,1)]
+
+    if whichco=='NCL':
+        colors_NCLbipo=[(11,76,95),(0,97,128),(0,161,191),(0,191,224),(0,250,250),(102,252,252),(153,250,250),(255,255,255),(255,255,255),(252,224,0),(252,191,0),(252,128,0),(252,64,0),(252,33,0),(128,0,0),(0,0,0)]
+
+    if whichco=='NCL_NOWI':
+        colors_NCLbipo=[(11,76,95),(0,97,128),(0,161,191),(0,191,224),(0,250,250),(102,252,252),(153,250,250),(255,255,255),(252,224,0),(252,191,0),(252,128,0),(252,64,0),(252,33,0),(128,0,0),(0,0,0)]
+
+    ### Call the function make_cmap which returns my colormap
+    my_cmap_NCLbipo = make_cmap(colors_NCLbipo[:], bit=True)
+    my_cmap_NCLbipo_r = make_cmap(colors_NCLbipo[::-1], bit=True)
+    
+    if reverse==True:
+        my_cmap_NCLbipo = my_cmap_NCLbipo_r
+
+    return(my_cmap_NCLbipo)
+
+
+    
+
+
+
+def addcolorbar(fig,cs,ax,levbounds,levincr=1,tformat="%.2f",tlabel='',shrink=0.45,facmul=1.,orientation='vertical',tc='k',loc='lower right',bbta=(0.08, -0.1,0.9,0.2)):
     lmin = levbounds[0]
     lmax = levbounds[1]
     incr = levbounds[2]
@@ -264,11 +334,10 @@ def addcolorbar(fig,cs,ax,levbounds,levincr=1,tformat="%.2f",tlabel='',shrink=0.
         axins1 = inset_axes(ax,
                         height="15%",  # height : 5%
                             width="50%",
-                        loc=loc,
-                        bbox_to_anchor=(0.08, 0.1,0.9,0.2),
+                        bbox_to_anchor=bbta,
                         bbox_transform=ax.transAxes,
                         borderpad=0)
-        
+
     if orientation =='vertical':
         axins1 = inset_axes(ax,
                         height="50%",  # height : 5%
@@ -276,7 +345,7 @@ def addcolorbar(fig,cs,ax,levbounds,levincr=1,tformat="%.2f",tlabel='',shrink=0.
                         loc='center left',
                        borderpad=2)
 
-    cb = fig.colorbar(cs,cax=axins1,pad=pad,
+    cb = fig.colorbar(cs,cax=axins1,
                                     extend='both',                   
                                     ticks=cblev,
                                     spacing='uniform',
@@ -334,7 +403,9 @@ def textunitfac(varname,faclab):
             suffix=" ("+faclab+" ºC)"
         elif varname=='SSH':
             if faclab=='10$^{-3}$':
-                suffix=" (mm)"       
+                suffix=" (mm)"    
+            elif faclab=='10$^{-2}$':
+                suffix=" (cm)"    
             else:
                 suffix=" ("+faclab+" m)"
         elif varname=='curloverf':
@@ -401,3 +472,10 @@ def definepathsonmachine(machine):
     maskfile   = diriprefix+'/MEDWEST60-I/MEDWEST60_mask.nc4'
     bathyfile  = diriprefix+'/MEDWEST60-I/MEDWEST60_Bathymetry_v3.3.nc4'
     return diriprefix,maskfile,bathyfile
+
+
+
+def saveplt(fig,diro,namo,dpifig=300):
+    fig.savefig(diro+namo, facecolor=fig.get_facecolor(),
+                edgecolor='none',dpi=dpifig,bbox_inches='tight', pad_inches=0)
+    plt.close(fig) 
