@@ -1,0 +1,83 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=28
+#SBATCH --threads-per-core=1
+#SBATCH --constraint=BDW28
+#SBATCH -J NC4
+#SBATCH -e znc4.e%j
+#SBATCH -o znc4.o%j
+#SBATCH --time=4:00:00
+#SBATCH --exclusive
+
+
+# PURPOSE: extract a subdomain of eNATL60 data on OCCIGEN (MEDWEST domain)
+# NOTE: CDFCLIP should be adapetd to type of variable (3D or 2D): in the 3D case: -klim 1 198 else, nothing.
+
+
+if [ $# != 2 ] ; then
+     echo "usage : extract_JMM mm yyyy"
+     exit
+fi
+
+CONFIG=eNATL60
+CASE=BLBT02
+
+freq=1h
+year=$2
+mm=$1
+                    
+CDFCLIP="cdfclip -zoom 5530 6412 1870 2672 -klim 1 212  " #-klim 1 198
+
+CONFCASE=${CONFIG}-${CASE}
+
+CONFX=MEDWEST60
+
+ROOTDIR=/store/lbrodeau/${CONFIG}/ORGANIZED/${CONFCASE}-S
+
+
+###############
+ulimit -s unlimited
+
+
+mkdir -p /store/lerouxst/eNATL60/ZOOMs/MEDWEST60/
+cd /store/lerouxst/eNATL60/ZOOMs/MEDWEST60/
+
+n=0
+for typ in   "gridT"  ; do
+  for f in  ${ROOTDIR}/$typ/${CONFCASE}_${freq}_${year}${mm}??-${year}${mm}??_$typ.nc ; do
+     tmp=$( echo $(basename $f) )
+     tmp2=$(echo $tmp | awk -F_ '{print $3}' ) ; tmp2=${tmp2%-*}
+     yyyy=${tmp2:0:4}
+     mm=${tmp2:4:2}
+     dd=${tmp2:6:2}
+
+     lfs hsm_state $f | grep -q release
+     if [ $? = 0 ] ; then
+       echo $f released. next
+       # find original name
+       fo=$(ls -l $f | awk '{print $NF}')
+       lfs hsm_restore $fo
+     else
+       echo $f
+       g=${CONFX}-${CASE}_y${yyyy}m${mm}d${dd}.${freq}_${typ}.nc
+       echo $g
+
+       if [ ! -f $g ] ; then
+          echo xtracting $g
+          n=$((n+1))
+          lfs setstripe -c 10 $g
+
+          $CDFCLIP  -f $f  -nc4 -o $g   &
+
+          if [ $n = 16 ] ; then
+            wait
+            n=0
+          fi
+       fi
+     fi
+  done
+done
+
+wait
+

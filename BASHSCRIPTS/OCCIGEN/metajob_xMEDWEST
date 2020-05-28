@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# PURPOSE: extract a subdomain of eNATL60 data on OCCIGEN (MEDWEST domain)
+
+for m in {06..12} ; do
+    sbatch -J xtrac$m xMEDWEST $m 2009
+done
+
+for m in {01..10} ; do
+   sbatch -J xtrac$m xMEDWEST $m 2010
+done
+
+
