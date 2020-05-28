@@ -28,7 +28,7 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 from matplotlib.colors import from_levels_and_colors
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import cmocean
+#import cmocean
 
 
 # custom tools
@@ -467,7 +467,7 @@ def definepathsonmachine(machine):
         diriprefix ='/mnt/meom/workdir/lerouste/MEDWEST60/'
         
     if machine=='JZ':
-        diriprefix ='/mnt/meom/workdir/lerouste/MEDWEST60/'
+        diriprefix ='/gpfsstore/rech/egi/commun/MEDWEST60/'
         
     maskfile   = diriprefix+'/MEDWEST60-I/MEDWEST60_mask.nc4'
     bathyfile  = diriprefix+'/MEDWEST60-I/MEDWEST60_Bathymetry_v3.3.nc4'
