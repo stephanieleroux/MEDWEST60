@@ -323,7 +323,7 @@ def make_SLXcolormap(reverse=False,whichco='MJO'):
 
 
 
-def addcolorbar(fig,cs,ax,levbounds,levincr=1,tformat="%.2f",tlabel='',shrink=0.45,facmul=1.,orientation='vertical',tc='k',loc='lower right',bbta=(0.08, -0.1,0.9,0.2)):
+def addcolorbar(fig,cs,ax,levbounds,levincr=1,tformat="%.2f",tlabel='',shrink=0.45,facmul=1.,orientation='vertical',tc='k',loc='lower right',wth="15%",bbta=(0.08, -0.1,0.9,0.2)):
     lmin = levbounds[0]
     lmax = levbounds[1]
     incr = levbounds[2]
@@ -332,7 +332,7 @@ def addcolorbar(fig,cs,ax,levbounds,levincr=1,tformat="%.2f",tlabel='',shrink=0.
     
     if orientation =='horizontal':
         axins1 = inset_axes(ax,
-                        height="15%",  # height : 5%
+                        height=wth,  # height : 5%
                             width="50%",
                         bbox_to_anchor=bbta,
                         bbox_transform=ax.transAxes,
